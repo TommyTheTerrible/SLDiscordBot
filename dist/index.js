@@ -160,6 +160,7 @@ class SLDiscordBot {
             this.bot.clientEvents.onInstantMessage.subscribe(this.onInstantMessage.bind(this));
             this.bot.clientEvents.onGroupChat.subscribe(this.onGroupChat.bind(this));
             this.bot.clientEvents.onGroupNotice.subscribe(this.onGroupNotice.bind(this));
+            this.bot.clientEvents.onLure.subscribe(this.onLure.bind(this));
         });
     }
     onGroupChat(event) {
@@ -206,6 +207,32 @@ class SLDiscordBot {
                     // sendInstantMessage will send it instantly
                     yield this.bot.clientCommands.comms.sendInstantMessage(event.from, 'Of course I still love you!');
                 }
+            }
+        });
+    }
+    onLure(lureEvent) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const regionInfo = yield this.bot.clientCommands.grid.getRegionMapInfo(lureEvent.gridX / 256, lureEvent.gridY / 256);
+                if (lureEvent.from.toString() === this.masterAvatar) {
+                    console.log('Accepting teleport lure to ' + regionInfo.block.name + ' (' + regionInfo.avatars.length + ' avatar' + ((regionInfo.avatars.length === 1) ? '' : 's') + '' +
+                        ' present) from ' + lureEvent.fromName + ' with message: ' + lureEvent.lureMessage);
+                    try {
+                        yield this.bot.clientCommands.teleport.acceptTeleport(lureEvent);
+                    }
+                    catch (error) {
+                        console.error('Teleport error:');
+                        console.error(error);
+                    }
+                }
+                else {
+                    console.log('Ignoring teleport lure to ' + regionInfo.block.name + ' (' + regionInfo.avatars.length + ' avatar' + ((regionInfo.avatars.length === 1) ? '' : 's') + ' ' +
+                        'present) from ' + lureEvent.fromName + ' with message: ' + lureEvent.lureMessage);
+                }
+            }
+            catch (error) {
+                console.error('Failed to get region map info:');
+                console.error(error);
             }
         });
     }
