@@ -31,6 +31,9 @@ class SLDiscordBot
     protected isConnecting = false;
     protected loginResponse?: LoginResponse;    
 
+    protected gcInterval;
+    protected gcRefreshTime = 300000; // default is 300000, aka five minutes in milliseconds.
+
     protected bot: Bot;
     private reconnectTimer?: Timeout;
 
@@ -216,6 +219,8 @@ class SLDiscordBot
 
 	this.bot.clientEvents.onLure.subscribe(this.onLure.bind(this));
 
+	gcInterval = setInterval(RefreshGroupChatSessions, gcRefreshTime);
+
     }
 
     async onGroupChat(event: GroupChatEvent): Promise<void>
@@ -234,7 +239,7 @@ class SLDiscordBot
 	var webhook = this.webhooks[event.groupID.toString()];
 	var chatmessage = event.message.replace('@everyone','').replace('@here','');
 
-       	await this.SendMessageWebhook(event.fromName, account_photo, chatmessage, webhook);
+	if(webhook) await this.SendMessageWebhook(event.fromName, account_photo, chatmessage, webhook);
 	
         //console.log('Group chat: ' + event.fromName + ': ' + event.message + ' sent to ' + webhook + ' ' + account_photo);
 
@@ -258,7 +263,7 @@ class SLDiscordBot
 	var noticeSubject = event.subject;
 
 
-        await this.SendNoticeWebhook(event.fromName, account_photo, noticeSubject, noticeMessage, webhook);
+        if(webhook) await this.SendNoticeWebhook(event.fromName, account_photo, noticeSubject, noticeMessage, webhook);
 
         //console.log('Group chat: ' + event.fromName + ': ' + event.message + ' sent to ' + webhook + ' ' + account_photo);
 
@@ -351,6 +356,15 @@ class SLDiscordBot
                 }
         );
     }
+
+    // Sends group chat session start to each group in webhook.
+    // This repeats every so many minutes to keep connection to group chats.
+    async RefreshGroupChatSessions() {
+	for (const [key, value] of Object.entries(this.webhooks)) {
+	  await this.bot.clientCommands.comms.startGroupChatSession(key, '');
+	}
+    }
+
 
 }
 
